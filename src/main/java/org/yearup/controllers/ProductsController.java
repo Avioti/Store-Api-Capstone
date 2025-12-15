@@ -46,19 +46,21 @@ public class ProductsController
     @PreAuthorize("permitAll()")
     public Product getById(@PathVariable int id )
     {
+        var product = productDao.getById(id);
         try
         {
-            var product = productDao.getById(id);
+
 
             if(product == null)
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
-            return product;
+
         }
         catch(Exception ex)
         {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
         }
+        return product;
     }
 
     @PostMapping()
@@ -81,7 +83,7 @@ public class ProductsController
     {
         try
         {
-            productDao.create(product);
+            productDao.update(id, product);
         }
         catch(Exception ex)
         {
