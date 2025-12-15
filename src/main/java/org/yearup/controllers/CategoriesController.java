@@ -61,7 +61,8 @@ public class CategoriesController
     {
         List<Product> products = productDao.listByCategoryId(categoryId);
 
-
+        if(products == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);}
 
         return products;
     }
