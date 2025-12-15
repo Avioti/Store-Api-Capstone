@@ -21,8 +21,8 @@ public class CategoriesController
     private CategoryDao categoryDao;
     private ProductDao productDao;
 
-    private static final String ID_PATH = "{id}";
-    private static final String PRODUCTS_PATH = "{Id}/products";
+    private static final String ID_PATH = "/{id}";
+    private static final String PRODUCTS_PATH = "/{Id}/products";
 
 
     // create an Autowired controller to inject the categoryDao and ProductDao
@@ -49,15 +49,8 @@ public class CategoriesController
     public Category getById(@PathVariable int id)
     {
         Category category = categoryDao.getById(id);
-        try
-        {
-            if(category == null)
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        catch(Exception e)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
-        }
+        if(category == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);}
         return category;
     }
 
@@ -67,26 +60,21 @@ public class CategoriesController
     public List<Product> getProductsById(@PathVariable int categoryId)
     {
         List<Product> products = productDao.listByCategoryId(categoryId);
-        try
-        {
-            if(products == null)
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
-        }
-        catch(Exception ex)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
-        }
+
+
         return products;
     }
 
     @PostMapping()
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
     public Category addCategory(@RequestBody Category category)
     {
         try
         {
             return categoryDao.create(category);
+
         }
         catch(Exception ex)
         {
@@ -113,20 +101,12 @@ public class CategoriesController
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void deleteCategory(@PathVariable int id)
     {
-        var category = categoryDao.getById(id);
-        try
-        {
+        boolean deleted = categoryDao.delete(id);
 
-
-            if(category == null)
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-
-
+        if(deleted){
+            throw new ResponseStatusException(HttpStatus.NO_CONTENT);
         }
-        catch(Exception ex)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
-        }
-        categoryDao.delete(id);
+
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
 }
