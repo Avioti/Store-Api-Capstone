@@ -2,6 +2,7 @@ package org.yearup.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,8 +19,8 @@ import java.security.Principal;
 // only logged in users should have access to these actions
 @RestController
 @RequestMapping("cart")
-@CrossOrigin
-@PreAuthorize("hasRole('ROLE_USER')")
+@CrossOrigin()
+@PreAuthorize("isAuthenticated()")
 public class ShoppingCartController
 {
     // a shopping cart requires
@@ -46,26 +47,21 @@ public class ShoppingCartController
             int userId = getUserIdFromPrincipal(principal);
             return shoppingCartDao.getByUserId(userId);
         }
-        catch(Exception e)
-        {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oops... our bad.");
+        catch(Exception e){
+         
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving shopping cart.");
         }
     }
 
     // add a POST method to add a product to the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be added
-    @PostMapping(PRODUCTS_PATH)
-    @ResponseStatus(HttpStatus.CREATED)
-    public void addProductToCart(Principal principal, @PathVariable int productId)
+    @PostMapping(value = PRODUCTS_PATH, produces = "application/json")
+    public ResponseEntity<ShoppingCart> addProductToCart(Principal principal, @PathVariable int productId)
     {
         try
         {
+
             int userId = getUserIdFromPrincipal(principal);
-
-
-            if (productDao.getById(productId) == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
-            }
 
 
             if (shoppingCartDao.itemExistsInCart(userId, productId)) {
@@ -73,10 +69,15 @@ public class ShoppingCartController
                 ShoppingCartItem existingItem = cart.get(productId);
                 int newQuantity = existingItem.getQuantity() + 1;
                 shoppingCartDao.updateItemQuantity(userId, productId, newQuantity);
+               
             } else {
-
                 shoppingCartDao.addItemToCart(userId, productId);
+               
             }
+
+            ShoppingCart updated = shoppingCartDao.getByUserId(userId);
+            
+            return ResponseEntity.ok(updated);
         }
         catch(Exception e)
         {
@@ -111,18 +112,16 @@ public class ShoppingCartController
 
     // add a DELETE method to clear all products from the current users cart
     // https://localhost:8080/cart
-    @DeleteMapping
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void clearCart(Principal principal)
+    @DeleteMapping()
+    public ResponseEntity<ShoppingCart> clearCart(Principal principal)
     {
-        try
-        {
+        try {
             int userId = getUserIdFromPrincipal(principal);
             shoppingCartDao.clearCart(userId);
-        }
-        catch(Exception e)
-        {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oops... our bad.");
+            ShoppingCart updated = shoppingCartDao.getByUserId(userId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
         }
     }
 
