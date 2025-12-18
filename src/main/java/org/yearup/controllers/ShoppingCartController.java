@@ -9,6 +9,7 @@ import org.yearup.data.ProductDao;
 import org.yearup.data.ShoppingCartDao;
 import org.yearup.data.UserDao;
 import org.yearup.models.ShoppingCart;
+import org.yearup.models.ShoppingCartItem;
 import org.yearup.models.User;
 
 import java.security.Principal;
@@ -34,7 +35,7 @@ public class ShoppingCartController
         this.productDao = productDao;
     }
 
-    private static final String PRODUCTS_PATH = "/products/{Id}";
+    private static final String PRODUCTS_PATH = "/products/{productId}";
 
     // each method in this controller requires a Principal object as a parameter
     @GetMapping
@@ -42,38 +43,40 @@ public class ShoppingCartController
     {
         try
         {
-            // get the currently logged in username
-            String userName = principal.getName();
-            // find database user by userId
-            User user = userDao.getByUserName(userName);
-            int userId = user.getId();
-
-            // use the shoppingcartDao to get all items in the cart and return the cart
-
-            return null;
-
+            int userId = getUserIdFromPrincipal(principal);
+            return shoppingCartDao.getByUserId(userId);
         }
         catch(Exception e)
         {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oops... our bad.");
         }
     }
 
     // add a POST method to add a product to the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be added
     @PostMapping(PRODUCTS_PATH)
-    public void addProductToCart(Principal principal)
+    @ResponseStatus(HttpStatus.CREATED)
+    public void addProductToCart(Principal principal, @PathVariable int productId)
     {
         try
         {
-            // get the currently logged in username
-            String userName = principal.getName();
-            // find database user by userId
-            User user = userDao.getByUserName(userName);
-            int userId = user.getId();
+            int userId = getUserIdFromPrincipal(principal);
 
-            // use the shoppingcartDao to add the product to the cart
 
+            if (productDao.getById(productId) == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
+            }
+
+
+            if (shoppingCartDao.itemExistsInCart(userId, productId)) {
+                ShoppingCart cart = shoppingCartDao.getByUserId(userId);
+                ShoppingCartItem existingItem = cart.get(productId);
+                int newQuantity = existingItem.getQuantity() + 1;
+                shoppingCartDao.updateItemQuantity(userId, productId, newQuantity);
+            } else {
+
+                shoppingCartDao.addItemToCart(userId, productId);
+            }
         }
         catch(Exception e)
         {
@@ -86,18 +89,18 @@ public class ShoppingCartController
     // https://localhost:8080/cart/products/15 (15 is the productId to be updated)
     // the BODY should be a ShoppingCartItem - quantity is the only value that will be updated
     @PutMapping(PRODUCTS_PATH)
-    public void updateProductInCart(Principal principal)
+    public void updateProductInCart(Principal principal, @PathVariable int productId, @RequestBody ShoppingCartItem item)
     {
         try
         {
-            // get the currently logged in username
-            String userName = principal.getName();
-            // find database user by userId
-            User user = userDao.getByUserName(userName);
-            int userId = user.getId();
+            int userId = getUserIdFromPrincipal(principal);
 
-            // use the shoppingcartDao to update the product in the cart
 
+            if (!shoppingCartDao.itemExistsInCart(userId, productId)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found in cart");
+            }
+
+            shoppingCartDao.updateItemQuantity(userId, productId, item.getQuantity());
         }
         catch(Exception e)
         {
@@ -109,23 +112,26 @@ public class ShoppingCartController
     // add a DELETE method to clear all products from the current users cart
     // https://localhost:8080/cart
     @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void clearCart(Principal principal)
     {
         try
         {
-            // get the currently logged in username
-            String userName = principal.getName();
-            // find database user by userId
-            User user = userDao.getByUserName(userName);
-            int userId = user.getId();
-
-            // use the shoppingcartDao to clear the cart
-
+            int userId = getUserIdFromPrincipal(principal);
+            shoppingCartDao.clearCart(userId);
         }
         catch(Exception e)
         {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oops... our bad.");
         }
+    }
+
+
+    private int getUserIdFromPrincipal(Principal principal)
+    {
+        String userName = principal.getName();
+        User user = userDao.getByUserName(userName);
+        return user.getId();
     }
 
 }
