@@ -77,7 +77,7 @@ public class ShoppingCartController
 
             ShoppingCart updated = shoppingCartDao.getByUserId(userId);
             
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.status(HttpStatus.CREATED).body(updated);
         }
         catch(Exception e)
         {
