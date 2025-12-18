@@ -2,6 +2,7 @@ package org.yearup.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -10,7 +11,6 @@ import org.yearup.data.ProductDao;
 import org.yearup.models.Category;
 import org.yearup.models.Product;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -18,11 +18,11 @@ import java.util.List;
 @CrossOrigin
 public class CategoriesController
 {
-    private CategoryDao categoryDao;
-    private ProductDao productDao;
+    private final CategoryDao categoryDao;
+    private final ProductDao productDao;
 
     private static final String ID_PATH = "/{id}";
-    private static final String PRODUCTS_PATH = "/{Id}/products";
+    private static final String PRODUCTS_PATH = "/{id}/products";
 
 
     // create an Autowired controller to inject the categoryDao and ProductDao
@@ -33,10 +33,11 @@ public class CategoriesController
         this.productDao = productDao;
     }
     @GetMapping
-    public List<Category> getAll(@RequestParam(required = false) String name)
+    public ResponseEntity<List<Category>> getAll()
     {
         try{
-            return categoryDao.getAllCategories();
+            List<Category> categories = categoryDao.getAllCategories();
+            return ResponseEntity.ok(categories);
         }
         catch(Exception ex){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
@@ -46,35 +47,37 @@ public class CategoriesController
 
     @GetMapping(ID_PATH)
     @PreAuthorize("permitAll()")
-    public Category getById(@PathVariable int id)
+    public ResponseEntity<Category> getById(@PathVariable int id)
     {
         Category category = categoryDao.getById(id);
         if(category == null){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);}
-        return category;
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(category);
     }
 
     // the url to return all products in category 1 would look like this
     // https://localhost:8080/categories/1/products
     @GetMapping(PRODUCTS_PATH)
-    public List<Product> getProductsById(@PathVariable int categoryId)
+    public ResponseEntity<List<Product>> getProductsById(@PathVariable("id") int categoryId)
     {
         List<Product> products = productDao.listByCategoryId(categoryId);
 
         if(products == null){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);}
+            return ResponseEntity.notFound().build();
+        }
 
-        return products;
+        return ResponseEntity.ok(products);
     }
 
     @PostMapping()
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Category addCategory(@RequestBody Category category)
+    public ResponseEntity<Category> addCategory(@RequestBody Category category)
     {
         try
         {
-            return categoryDao.create(category);
+            Category created = categoryDao.create(category);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
 
         }
         catch(Exception ex)
@@ -85,11 +88,12 @@ public class CategoriesController
 
     @PutMapping(ID_PATH)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public void updateCategory(@PathVariable int id, @RequestBody Category category)
+    public ResponseEntity<Void> updateCategory(@PathVariable int id, @RequestBody Category category)
     {
         try
         {
             categoryDao.update(id,category);
+            return ResponseEntity.noContent().build();
         }
         catch(Exception ex)
         {
@@ -100,14 +104,14 @@ public class CategoriesController
 
     @DeleteMapping(ID_PATH)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public void deleteCategory(@PathVariable int id)
+    public ResponseEntity<Void> deleteCategory(@PathVariable int id)
     {
         boolean deleted = categoryDao.delete(id);
 
         if(deleted){
-            throw new ResponseStatusException(HttpStatus.NO_CONTENT);
+            return ResponseEntity.noContent().build();
         }
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        return ResponseEntity.notFound().build();
     }
 }
