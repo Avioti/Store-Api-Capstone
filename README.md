@@ -1,6 +1,6 @@
-# Easyshop Capstone (API Starter)
+# Easyshop Capstone (API)
 
-A compact Spring Boot REST API starter for a small e-commerce demo used in the YearUp capstone.
+A compact Spring Boot REST API for a small e-commerce demo.
 
 What this repo is
 - A backend API for categories, products, authentication (JWT), user profiles and a persisted shopping cart.
