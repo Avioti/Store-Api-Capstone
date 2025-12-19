@@ -26,16 +26,17 @@ One interesting piece of code
 Example (excerpt):
 
 ```java
-// ShoppingCartController.getCart (simplified)
-@GetMapping
-public ShoppingCart getCart(Principal principal) {
-    int userId = getUserIdFromPrincipal(principal);
-    return shoppingCartDao.getByUserId(userId);
-}
-
-private int getUserIdFromPrincipal(Principal principal) {
-    String userName = principal.getName();
-    User user = userDao.getByUserName(userName);
-    return user.getId();
-}
+   @GetMapping
+    public ShoppingCart getCart(Principal principal)
+    {
+        try
+        {
+            int userId = getUserIdFromPrincipal(principal);
+            return shoppingCartDao.getByUserId(userId);
+        }
+        catch(Exception e){
+         
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving shopping cart.");
+        }
+    }
 ```
